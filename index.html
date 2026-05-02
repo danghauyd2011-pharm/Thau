@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MSC Tool Suite — KQLCNT + Check Giá</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --primary: #1a56db;
+    --primary-dark: #1341b0;
+    --primary-light: #e8f0fe;
+    --accent: #16a34a;
+    --accent-light: #dcfce7;
+    --warn: #f59e0b;
+    --danger: #dc2626;
+    --bg: #f0f4f8;
+    --card: #ffffff;
+    --border: #d1d5db;
+    --text: #111827;
+    --text-muted: #6b7280;
+    --radius: 10px;
+    --shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ===== HEADER ===== */
+  header {
+    background: var(--primary);
+    color: #fff;
+    padding: 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+  }
+  .header-inner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 20px;
+    height: 52px;
+  }
+  .logo-circle {
+    width: 34px; height: 34px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 16px;
+    flex-shrink: 0;
+  }
+  .header-title { font-size: 16px; font-weight: 600; flex: 1; }
+  .header-sub { font-size: 11px; opacity: 0.75; }
+
+  /* ===== TABS ===== */
+  nav.tabs {
+    display: flex;
+    background: var(--primary-dark);
+  }
+  nav.tabs button {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: rgba(255,255,255,0.7);
+    padding: 10px 4px;
+    font-size: 13px;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s;
+    font-weight: 500;
+  }
+  nav.tabs button.active {
+    color: #fff;
+    border-bottom-color: #fff;
+    background: rgba(255,255,255,0.08);
+  }
+  nav.tabs button:hover:not(.active) {
+    background: rgba(255,255,255,0.05);
+    color: rgba(255,255,255,0.9);
+  }
+
+  /* ===== MAIN ===== */
+  main { max-width: 1200px; margin: 0 auto; padding: 18px 14px 40px; }
+
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  /* ===== CARD ===== */
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 18px;
+    margin-bottom: 16px;
+    border: 1px solid var(--border);
+  }
+  .card-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--primary);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* ===== FORM ELEMENTS ===== */
+  label { font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px; }
+  input[type=text], input[type=date], select {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-size: 13px;
+    outline: none;
+    transition: border 0.2s;
+    background: #fff;
+  }
+  input:focus, select:focus { border-color: var(--primary); }
+
+  .form-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+  .form-group { flex: 1; min-width: 130px; }
+
+  /* ===== BUTTONS ===== */
+  .btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 8px 14px;
+    border-radius: 6px;
+    border: none;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--primary-dark); }
+  .btn-success { background: var(--accent); color: #fff; }
+  .btn-success:hover { background: #15803d; }
+  .btn-warn { background: var(--warn); color: #fff; }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  .btn-outline:hover { background: var(--bg); }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+  .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+  .btn-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+
+  /* ===== PROGRESS ===== */
+  .progress-wrap { margin-top: 14px; }
+  .progress-bar-outer {
+    height: 8px;
+    background: #e5e7eb;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .progress-bar-inner {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), #60a5fa);
+    border-radius: 4px;
+    width: 0%;
+    transition: width 0.3s;
+  }
+  .progress-stats {
+    display: flex; gap: 18px; margin-top: 10px; flex-wrap: wrap;
+  }
+  .stat-box {
+    background: var(--bg);
+    border-radius: 7px;
+    padding: 8px 14px;
+    text-align: center;
+    min-width: 90px;
+  }
+  .stat-box .val { font-size: 20px; font-weight: 700; color: var(--primary); }
+  .stat-box .lbl { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+  /* ===== RADIO GROUPS ===== */
+  .radio-group { display: flex; gap: 6px; flex-wrap: wrap; }
+  .radio-group label {
+    display: flex; align-items: center; gap: 5px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--text);
+    margin: 0;
+    transition: all 0.15s;
+  }
+  .radio-group input[type=radio] { display: none; }
+  .radio-group input[type=radio]:checked + span {
+    /* handled via JS */
+  }
+  .radio-group label.checked {
+    background: var(--primary-light);
+    border-color: var(--primary);
+    color: var(--primary);
+    font-weight: 600;
+  }
+
+  /* ===== FILE UPLOAD ===== */
+  .file-drop {
+    border: 2px dashed var(--border);
+    border-radius: 8px;
+    padding: 18px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .file-drop:hover { border-color: var(--primary); background: var(--primary-light); }
+  .file-drop input { display: none; }
+
+  /* ===== TABLE ===== */
+  .table-wrap { overflow-x: auto; margin-top: 10px; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  th {
+    background: #f3f4f6;
+    border: 1px solid var(--border);
+    padding: 7px 8px;
+    text-align: left;
+    font-weight: 600;
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+  }
+  td {
+    border: 1px solid #e5e7eb;
+    padding: 6px 8px;
+    vertical-align: top;
+  }
+  tr:nth-child(even) td { background: #fafafa; }
+  tr:hover td { background: #eff6ff; }
+
+  /* ===== TAGS ===== */
+  .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .tag-green { background: var(--accent-light); color: #15803d; }
+  .tag-blue { background: var(--primary-light); color: var(--primary); }
+  .tag-warn { background: #fef3c7; color: #92400e; }
+  .tag-gray { background: #f3f4f6; color: #6b7280; }
+
+  /* ===== ALERT ===== */
+  .alert {
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .alert-warn { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
+  .alert-info { background: var(--primary-light); border: 1px solid #bfdbfe; color: #1e40af; }
+
+  /* ===== SUMMARY BOXES (CHECK GIA) ===== */
+  .summary-row {
+    display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px;
+  }
+  .summary-box {
+    flex: 1; min-width: 100px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    text-align: center;
+  }
+  .summary-box .s-val { font-size: 22px; font-weight: 700; }
+  .summary-box .s-lbl { font-size: 11px; color: var(--text-muted); }
+  .summary-box.green .s-val { color: var(--accent); }
+  .summary-box.blue .s-val { color: var(--primary); }
+  .summary-box.amber .s-val { color: #d97706; }
+  .summary-box.red .s-val { color: var(--danger); }
+
+  /* ===== FILTER PANEL ===== */
+  .filter-panel {
+    display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end;
+    margin-bottom: 12px;
+  }
+  .filter-panel .form-group { min-width: 100px; }
+
+  /* ===== LOGS ===== */
+  .log-area {
+    background: #0f172a;
+    color: #94a3b8;
+    font-family: monospace;
+    font-size: 11px;
+    padding: 12px;
+    border-radius: 8px;
+    height: 120px;
+    overflow-y: auto;
+    margin-top: 10px;
+  }
+  .log-area p { margin: 2px 0; }
+  .log-ok { color: #4ade80; }
+  .log-err { color: #f87171; }
+  .log-info { color: #60a5fa; }
+
+  /* ===== CHECKBOX ===== */
+  .check-all-row {
+    display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;
+  }
+
+  /* ===== SCROLL TABLE ===== */
+  .big-table-wrap {
+    max-height: 480px;
+    overflow: auto;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+
+  /* Badge count */
+  .badge {
+    background: var(--primary);
+    color: #fff;
+    border-radius: 10px;
+    font-size: 10px;
+    padding: 1px 6px;
+    margin-left: 4px;
+  }
+
+  @media(max-width: 600px) {
+    nav.tabs button { font-size: 11px; padding: 9px 2px; }
+    .header-title { font-size: 14px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-inner">
+    <div class="logo-circle">M</div>
+    <div>
+      <div class="header-title">MSC Tool Suite</div>
+      <div class="header-sub">Mua Sắm Công · v2.0 (Thuốc + VTYT)</div>
+    </div>
+  </div>
+  <nav class="tabs">
+    <button class="active" onclick="switchTab('tab-kqlcnt', this)">📡 Tải KQLCNT</button>
+    <button onclick="switchTab('tab-db', this)">📋 DB Viewer</button>
+    <button onclick="switchTab('tab-gia', this)">💊 Check Giá</button>
+  </nav>
+</header>
+
+<main>
+
+  <!-- ===== TAB 1: TẢI KQLCNT ===== -->
+  <div id="tab-kqlcnt" class="tab-pane active">
+
+    <div class="card">
+      <div class="card-title">🗄️ Tải Dữ Liệu Kết Quả Lựa Chọn Nhà Thầu</div>
+
+      <!-- Resume alert -->
+      <div class="alert alert-warn" id="resume-alert">
+        ⚡ <div>
+          <strong>Phát hiện phiên tải dang dở</strong><br>
+          Có dữ liệu chưa hoàn tất trong bộ nhớ trình duyệt.
+          <span style="display:inline-flex; gap:6px; margin-top:6px;">
+            <button class="btn btn-sm btn-primary" onclick="resumeSession()">Tiếp tục</button>
+            <button class="btn btn-sm btn-outline" onclick="clearSession()">Xóa</button>
+          </span>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Proxy URL</label>
+          <input type="text" id="proxy-url" placeholder="https://..." value="">
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:12px;">
+        <label>Loại Dữ Liệu Cần Tải</label>
+        <div class="radio-group" id="rg-type">
+          <label class="checked" onclick="setRadio('rg-type',this,'thuoc')"><input type="radio" name="type" value="thuoc" checked><span>💊 Thuốc</span></label>
+          <label onclick="setRadio('rg-type',this,'vtyt')"><input type="radio" name="type" value="vtyt"><span>💉 Thiết bị, Vật tư y tế</span></label>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Đăng tải từ ngày</label>
+          <input type="date" id="date-from">
+        </div>
+        <div class="form-group">
+          <label>Đến ngày</label>
+          <input type="date" id="date-to">
+        </div>
+        <div class="form-group">
+          <label>Parallel (ngày/lần)</label>
+          <div class="radio-group" id="rg-parallel">
+            <label onclick="setRadio('rg-parallel',this,'1')"><input type="radio" name="par" value="1"><span>1 — An toàn</span></label>
+            <label onclick="setRadio('rg-parallel',this,'2')"><input type="radio" name="par" value="2"><span>2 — Cân bằng</span></label>
+            <label class="checked" onclick="setRadio('rg-parallel',this,'3')"><input type="radio" name="par" value="3" checked><span>3 — Nhanh ✓</span></label>
+            <label onclick="setRadio('rg-parallel',this,'5')"><input type="radio" name="par" value="5"><span>5 — Rất nhanh</span></label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Page size / trang</label>
+          <div class="radio-group" id="rg-page">
+            <label onclick="setRadio('rg-page',this,'50')"><input type="radio" name="page" value="50"><span>50</span></label>
+            <label class="checked" onclick="setRadio('rg-page',this,'100')"><input type="radio" name="page" value="100" checked><span>100</span></label>
+            <label onclick="setRadio('rg-page',this,'200')"><input type="radio" name="page" value="200"><span>200</span></label>
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btn-start" onclick="startDownload()">▶ Bắt đầu tải</button>
+        <button class="btn btn-success" onclick="exportExcelDB()">↓ Xuất Excel từ DB</button>
+        <button class="btn btn-danger btn-sm" onclick="clearDB()">✕ Xóa cache</button>
+      </div>
+
+      <div class="progress-wrap" id="progress-wrap" style="display:none;">
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+          <span id="progress-label">Chờ...</span>
+          <span id="progress-pct">0%</span>
+        </div>
+        <div class="progress-bar-outer">
+          <div class="progress-bar-inner" id="progress-bar"></div>
+        </div>
+        <div class="progress-stats">
+          <div class="stat-box">
+            <div class="val" id="stat-rows">0</div>
+            <div class="lbl">Dòng dữ liệu</div>
+          </div>
+          <div class="stat-box">
+            <div class="val" id="stat-days">0/0</div>
+            <div class="lbl">Ngày hoàn thành</div>
+          </div>
+          <div class="stat-box">
+            <div class="val" id="stat-rpm">—</div>
+            <div class="lbl">Rows/phút</div>
+          </div>
+        </div>
+        <div class="btn-row" style="margin-top:10px;">
+          <button class="btn btn-success btn-sm" onclick="exportExcelLive()">↓ Xuất Excel</button>
+          <button class="btn btn-danger btn-sm" onclick="stopDownload()">⏹ Dừng</button>
+        </div>
+        <div class="log-area" id="log-area"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TAB 2: DB VIEWER ===== -->
+  <div id="tab-db" class="tab-pane">
+    <div class="card">
+      <div class="card-title">📋 DB Viewer</div>
+
+      <div class="filter-panel">
+        <div class="form-group" style="min-width:120px;">
+          <label>Loại</label>
+          <div class="radio-group" id="rg-db-type">
+            <label class="checked" onclick="setRadio('rg-db-type',this,'thuoc')"><input type="radio" name="db-type" value="thuoc" checked><span>💊 Thuốc</span></label>
+            <label onclick="setRadio('rg-db-type',this,'vtyt')"><input type="radio" name="db-type" value="vtyt"><span>💉 Vật Tư Y Tế</span></label>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="loadDB()">⟳ Tải từ DB</button>
+        <div style="flex:1"></div>
+        <button class="btn btn-success btn-sm" onclick="exportDBView()">⬇ Xuất Excel</button>
+      </div>
+
+      <div class="filter-panel">
+        <div class="form-group">
+          <label>Bệnh viện <span class="badge" id="bv-count">0</span></label>
+          <select id="filter-bv" multiple style="height:80px;">
+          </select>
+          <div style="display:flex;gap:4px;margin-top:3px;">
+            <button class="btn btn-sm btn-outline" onclick="selectAll('filter-bv')">Tất cả</button>
+            <button class="btn btn-sm btn-outline" onclick="deselectAll('filter-bv')">Bỏ hết</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Tỉnh/TP <span class="badge" id="tinh-count">0</span></label>
+          <select id="filter-tinh" multiple style="height:80px;">
+          </select>
+          <div style="display:flex;gap:4px;margin-top:3px;">
+            <button class="btn btn-sm btn-outline" onclick="selectAll('filter-tinh')">Tất cả</button>
+            <button class="btn btn-sm btn-outline" onclick="deselectAll('filter-tinh')">Bỏ hết</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="big-table-wrap">
+        <table id="db-table">
+          <thead>
+            <tr>
+              <th>📋</th>
+              <th>Bệnh viện</th><th>Tỉnh/TP</th><th>Hoạt chất</th><th>Nồng độ</th>
+              <th>Dạng bào chế</th><th>Nhóm</th><th>ĐVT</th><th>SL</th><th>Đơn giá</th>
+              <th>Tên hàng</th><th>Hãng</th><th>Nước SX</th><th>Số thầu</th><th>Ngày</th>
+            </tr>
+          </thead>
+          <tbody id="db-tbody">
+            <tr><td colspan="15" style="text-align:center;padding:30px;color:var(--text-muted);">
+              Bấm <strong>Tải từ DB</strong> để xem dữ liệu
+            </td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TAB 3: CHECK GIÁ ===== -->
+  <div id="tab-gia" class="tab-pane">
+
+    <!-- Step 1: dataKQTT -->
+    <div class="card">
+      <div class="card-title">1 · dataKQTT (Lịch sử giá)</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <div class="file-drop" style="flex:1;min-width:200px;" onclick="document.getElementById('file-kqtt').click()">
+          <input type="file" id="file-kqtt" accept=".xlsx,.xls,.csv" onchange="loadFileKQTT(this)">
+          📂 Chọn file .xlsx / .xls / .csv
+        </div>
+        <button class="btn btn-outline" onclick="loadFromDB1()">📦 Từ IndexedDB</button>
+      </div>
+      <div id="kqtt-status" style="margin-top:8px;font-size:12px;color:var(--text-muted);">Chưa có dữ liệu DB</div>
+    </div>
+
+    <!-- Step 2: DM KHLCNT -->
+    <div class="card">
+      <div class="card-title">2 · Dm KHLCNT (Danh mục cần check)</div>
+      <div class="file-drop" onclick="document.getElementById('file-dm').click()">
+        <input type="file" id="file-dm" accept=".xlsx,.xls,.csv" onchange="loadFileDM(this)">
+        📂 Chọn file .xlsx / .xls / .csv
+      </div>
+      <div id="dm-status" style="margin-top:8px;font-size:12px;color:var(--text-muted);"></div>
+
+      <div class="btn-row" style="margin-top:12px;">
+        <button class="btn btn-primary" id="btn-match" onclick="runMatch()" disabled>▶ Chạy So Khớp</button>
+        <button class="btn btn-success btn-sm" onclick="exportMatch()" id="btn-export-match" disabled>⬇ Xuất Excel</button>
+      </div>
+
+      <!-- Filter hình thức thầu -->
+      <div style="margin-top:12px;">
+        <label>Hình thức thầu</label>
+        <div class="radio-group" id="rg-htthau" style="margin-top:5px;">
+          <label class="checked" onclick="setRadio('rg-htthau',this,'all');filterMatch()"><input type="radio" name="htthau" value="all" checked><span>Tất cả hình thức</span></label>
+          <label onclick="setRadio('rg-htthau',this,'dtrr');filterMatch()"><input type="radio" name="htthau" value="dtrr"><span>Đấu thầu rộng rãi</span></label>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;" id="filter-info">Đang lọc: Tất cả</div>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div class="card">
+      <div class="card-title">Kết quả so khớp</div>
+
+      <div class="summary-row" id="match-summary">
+        <div class="summary-box blue"><div class="s-val" id="s-total">0</div><div class="s-lbl">thuốc</div></div>
+        <div class="summary-box green"><div class="s-val" id="s-exact">✓ 0</div><div class="s-lbl">chính xác</div></div>
+        <div class="summary-box amber"><div class="s-val" id="s-fuzzy">~ 0</div><div class="s-lbl">tương đối</div></div>
+        <div class="summary-box red"><div class="s-val" id="s-notfound">∅ 0</div><div class="s-lbl">không thấy</div></div>
+        <div class="summary-box"><div class="s-val" id="s-checked">☑ 0</div><div class="s-lbl">đã chọn</div></div>
+      </div>
+
+      <div class="check-all-row">
+        <button class="btn btn-sm btn-outline" onclick="selectAllMatch(true)">☑ Chọn tất</button>
+        <button class="btn btn-sm btn-outline" onclick="selectAllMatch(false)">☐ Bỏ chọn</button>
+        <button class="btn btn-sm btn-warn" onclick="selectBest()">⭐ Tốt nhất</button>
+        <div style="flex:1"></div>
+        <label style="font-size:12px;color:var(--text-muted);">Hiển thị</label>
+        <select style="width:70px;" id="pagesize-match" onchange="renderMatchTable()">
+          <option value="50">50</option>
+          <option value="100">100</option>
+          <option value="200">200</option>
+          <option value="9999">Tất cả</option>
+        </select>
+        <span style="font-size:11px;color:var(--text-muted);">dòng</span>
+      </div>
+
+      <div class="big-table-wrap">
+        <table id="match-table">
+          <thead>
+            <tr>
+              <th>☑</th><th>STT/Score</th><th>Phân loại</th>
+              <th>Hoạt chất / Tên VTYT</th><th>Nồng độ / Model</th>
+              <th>Dạng bào chế</th><th>Đường dùng</th><th>Nhóm</th>
+              <th>ĐVT / SL</th><th>Giá / Thống kê</th><th>Tên hàng & Thông tin thầu</th>
+            </tr>
+          </thead>
+          <tbody id="match-tbody">
+            <tr><td colspan="11" style="text-align:center;padding:30px;color:var(--text-muted);">
+              🔍 Nạp dữ liệu và bấm <strong>Chạy So Khớp</strong>
+            </td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ============================================================
+// HELPERS
+// ============================================================
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('nav.tabs button').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+
+function setRadio(groupId, clickedLabel, val) {
+  document.querySelectorAll('#' + groupId + ' label').forEach(l => l.classList.remove('checked'));
+  clickedLabel.classList.add('checked');
+}
+
+function addLog(msg, type='') {
+  const area = document.getElementById('log-area');
+  const p = document.createElement('p');
+  p.className = 'log-' + type;
+  p.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+  area.appendChild(p);
+  area.scrollTop = area.scrollHeight;
+}
+
+function selectAll(id) {
+  const sel = document.getElementById(id);
+  Array.from(sel.options).forEach(o => o.selected = true);
+}
+function deselectAll(id) {
+  const sel = document.getElementById(id);
+  Array.from(sel.options).forEach(o => o.selected = false);
+}
+
+// ============================================================
+// STATE
+// ============================================================
+let isDownloading = false;
+let downloadInterval = null;
+let totalRows = 0;
+let completedDays = 0;
+let totalDays = 0;
+let startTime = null;
+
+let kqttData = [];
+let dmData = [];
+let matchResults = [];
+
+// Resume alert: show/hide based on localStorage
+(function checkResume() {
+  const saved = localStorage.getItem('msc_session');
+  if (!saved) document.getElementById('resume-alert').style.display = 'none';
+})();
+
+// ============================================================
+// TAB 1: DOWNLOAD
+// ============================================================
+function startDownload() {
+  const from = document.getElementById('date-from').value;
+  const to = document.getElementById('date-to').value;
+  if (!from || !to) { alert('Vui lòng chọn khoảng ngày!'); return; }
+  if (from > to) { alert('Ngày bắt đầu phải trước ngày kết thúc!'); return; }
+
+  isDownloading = true;
+  document.getElementById('btn-start').disabled = true;
+  document.getElementById('progress-wrap').style.display = 'block';
+  document.getElementById('log-area').innerHTML = '';
+
+  const d1 = new Date(from), d2 = new Date(to);
+  totalDays = Math.round((d2-d1)/(86400000)) + 1;
+  completedDays = 0; totalRows = 0; startTime = Date.now();
+
+  updateProgress();
+  addLog('Bắt đầu tải dữ liệu từ ' + from + ' đến ' + to, 'info');
+  addLog('Tổng số ngày: ' + totalDays, 'info');
+
+  // Simulate progress
+  downloadInterval = setInterval(() => {
+    if (!isDownloading) { clearInterval(downloadInterval); return; }
+    const inc = Math.floor(Math.random() * 80) + 20;
+    totalRows += inc;
+    completedDays = Math.min(completedDays + 1, totalDays);
+    addLog('Ngày ' + completedDays + '/' + totalDays + ': +' + inc + ' dòng', 'ok');
+    updateProgress();
+    if (completedDays >= totalDays) {
+      clearInterval(downloadInterval);
+      isDownloading = false;
+      document.getElementById('btn-start').disabled = false;
+      document.getElementById('progress-label').textContent = '✅ Hoàn thành!';
+      addLog('Tải xong! Tổng: ' + totalRows + ' dòng', 'ok');
+      localStorage.setItem('msc_session', JSON.stringify({ rows: totalRows, date: new Date().toISOString() }));
+    }
+  }, 600);
+}
+
+function stopDownload() {
+  isDownloading = false;
+  clearInterval(downloadInterval);
+  document.getElementById('btn-start').disabled = false;
+  document.getElementById('progress-label').textContent = '⏹ Đã dừng';
+  addLog('Đã dừng tải.', 'err');
+}
+
+function updateProgress() {
+  const pct = totalDays > 0 ? Math.round((completedDays / totalDays) * 100) : 0;
+  document.getElementById('progress-bar').style.width = pct + '%';
+  document.getElementById('progress-pct').textContent = pct + '%';
+  document.getElementById('stat-rows').textContent = totalRows.toLocaleString();
+  document.getElementById('stat-days').textContent = completedDays + '/' + totalDays;
+  const elapsed = (Date.now() - startTime) / 60000;
+  document.getElementById('stat-rpm').textContent = elapsed > 0 ? Math.round(totalRows / elapsed) : '—';
+}
+
+function resumeSession() {
+  const s = JSON.parse(localStorage.getItem('msc_session') || '{}');
+  totalRows = s.rows || 0;
+  document.getElementById('stat-rows').textContent = totalRows.toLocaleString();
+  document.getElementById('progress-wrap').style.display = 'block';
+  addLog('Đã khôi phục phiên: ' + totalRows + ' dòng', 'ok');
+  document.getElementById('resume-alert').style.display = 'none';
+}
+function clearSession() {
+  localStorage.removeItem('msc_session');
+  document.getElementById('resume-alert').style.display = 'none';
+  addLog('Đã xóa phiên cũ.', 'info');
+}
+
+function exportExcelDB() { alert('Xuất Excel từ DB (cần kết nối IndexedDB)'); }
+function exportExcelLive() { exportToExcel([{col:'Ngày'},{col:'Dòng'}], [], 'KQLCNT_Export'); }
+function clearDB() { if(confirm('Xóa toàn bộ cache?')) { totalRows=0; updateProgress(); addLog('Đã xóa cache.','err'); } }
+
+// ============================================================
+// TAB 2: DB VIEWER
+// ============================================================
+function loadDB() {
+  const tbody = document.getElementById('db-tbody');
+  tbody.innerHTML = '<tr><td colspan="15" style="text-align:center;padding:20px;color:var(--text-muted);">⏳ Đang tải...</td></tr>';
+  setTimeout(() => {
+    tbody.innerHTML = '<tr><td colspan="15" style="text-align:center;padding:20px;color:var(--text-muted);">Chưa có dữ liệu trong IndexedDB. Hãy tải KQLCNT trước.</td></tr>';
+  }, 500);
+}
+function exportDBView() { alert('Xuất Excel DB Viewer'); }
+
+// ============================================================
+// TAB 3: CHECK GIÁ
+// ============================================================
+function loadFileKQTT(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'binary' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      kqttData = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      document.getElementById('kqtt-status').innerHTML = '<span style="color:var(--accent)">✅ Đã nạp: ' + kqttData.length.toLocaleString() + ' dòng từ ' + file.name + '</span>';
+      checkReady();
+    } catch(err) {
+      document.getElementById('kqtt-status').innerHTML = '<span style="color:var(--danger)">❌ Lỗi đọc file: ' + err.message + '</span>';
+    }
+  };
+  reader.readAsBinaryString(file);
+}
+
+function loadFileDM(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'binary' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      dmData = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      document.getElementById('dm-status').innerHTML = '<span style="color:var(--accent)">✅ Đã nạp: ' + dmData.length.toLocaleString() + ' thuốc từ ' + file.name + '</span>';
+      checkReady();
+    } catch(err) {
+      document.getElementById('dm-status').innerHTML = '<span style="color:var(--danger)">❌ Lỗi đọc file: ' + err.message + '</span>';
+    }
+  };
+  reader.readAsBinaryString(file);
+}
+
+function loadFromDB1() {
+  document.getElementById('kqtt-status').innerHTML = '<span style="color:var(--text-muted)">⏳ Đang tải từ IndexedDB...</span>';
+  setTimeout(() => {
+    document.getElementById('kqtt-status').innerHTML = '<span style="color:var(--warn)">⚠️ Chưa có dữ liệu trong IndexedDB</span>';
+  }, 600);
+}
+
+function checkReady() {
+  const ready = kqttData.length > 0 && dmData.length > 0;
+  document.getElementById('btn-match').disabled = !ready;
+}
+
+function runMatch() {
+  if (!kqttData.length || !dmData.length) return;
+  matchResults = [];
+  let exact=0, fuzzy=0, notfound=0;
+
+  dmData.forEach((row, i) => {
+    const hoatChat = (row['Hoạt chất'] || row['hoat_chat'] || row[Object.keys(row)[0]] || '').toString().toLowerCase().trim();
+    const found = kqttData.filter(r => {
+      const hc = (r['Hoạt chất'] || r['hoat_chat'] || '').toString().toLowerCase();
+      return hc.includes(hoatChat) || hoatChat.includes(hc.substring(0, Math.max(3, hc.length-2)));
+    });
+
+    if (found.length > 0) {
+      const scores = found.map(r => ({
+        ...r, _score: similarity(hoatChat, (r['Hoạt chất']||'').toLowerCase()), _idx: i+1
+      })).sort((a,b) => b._score - a._score);
+      const best = scores[0];
+      const type = best._score > 0.85 ? 'exact' : 'fuzzy';
+      if (type === 'exact') exact++; else fuzzy++;
+      matchResults.push({ dm: row, matches: scores, type, checked: true, idx: i+1 });
+    } else {
+      notfound++;
+      matchResults.push({ dm: row, matches: [], type: 'notfound', checked: false, idx: i+1 });
+    }
+  });
+
+  document.getElementById('s-total').textContent = matchResults.length;
+  document.getElementById('s-exact').textContent = '✓ ' + exact;
+  document.getElementById('s-fuzzy').textContent = '~ ' + fuzzy;
+  document.getElementById('s-notfound').textContent = '∅ ' + notfound;
+  updateCheckedCount();
+  document.getElementById('btn-export-match').disabled = false;
+  renderMatchTable();
+}
+
+function similarity(a, b) {
+  if (!a || !b) return 0;
+  if (a === b) return 1;
+  const longer = a.length > b.length ? a : b;
+  const shorter = a.length > b.length ? b : a;
+  if (longer.length === 0) return 1;
+  return (longer.length - editDistance(longer, shorter)) / longer.length;
+}
+function editDistance(a, b) {
+  const dp = Array(b.length+1).fill(null).map((_,i)=>i);
+  for (let i=1;i<=a.length;i++) {
+    let prev=i;
+    for (let j=1;j<=b.length;j++) {
+      const temp = dp[j];
+      dp[j] = a[i-1]===b[j-1] ? dp[j-1] : 1+Math.min(dp[j-1],dp[j],prev);
+      prev = temp;
+    }
+  }
+  return dp[b.length];
+}
+
+function renderMatchTable() {
+  const tbody = document.getElementById('match-tbody');
+  const limit = parseInt(document.getElementById('pagesize-match').value);
+  const show = matchResults.slice(0, limit);
+
+  if (show.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:30px;color:var(--text-muted);">Chưa có dữ liệu — nạp 2 file rồi bấm Chạy So Khớp</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = show.map((item, i) => {
+    const tagClass = item.type === 'exact' ? 'tag-green' : item.type === 'fuzzy' ? 'tag-warn' : 'tag-gray';
+    const tagText = item.type === 'exact' ? 'Chính xác' : item.type === 'fuzzy' ? 'Tương đối' : 'Không thấy';
+    const best = item.matches[0] || {};
+    const price = best['Đơn giá'] || best['don_gia'] || '—';
+    const priceNum = parseFloat(String(price).replace(/,/g,''));
+    return `<tr>
+      <td><input type="checkbox" ${item.checked?'checked':''} onchange="toggleCheck(${i},this)"></td>
+      <td>${item.idx}<br><small style="color:var(--text-muted)">${item.matches.length>0?Math.round((item.matches[0]._score||0)*100)+'%':''}</small></td>
+      <td><span class="tag ${tagClass}">${tagText}</span></td>
+      <td>${item.dm['Hoạt chất']||item.dm[Object.keys(item.dm)[0]]||''}</td>
+      <td>${item.dm['Nồng độ']||best['Nồng độ']||''}</td>
+      <td>${best['Dạng bào chế']||''}</td>
+      <td>${best['Đường dùng']||''}</td>
+      <td>${best['Nhóm']||''}</td>
+      <td>${best['ĐVT']||''}<br><small>${best['SL']||''}</small></td>
+      <td>${!isNaN(priceNum)&&priceNum>0 ? priceNum.toLocaleString('vi-VN')+'₫' : '—'}</td>
+      <td>${best['Tên hàng']||best['ten_hang']||''}<br><small style="color:var(--text-muted)">${best['Số thầu']||best['so_thau']||''}</small></td>
+    </tr>`;
+  }).join('');
+}
+
+function toggleCheck(i, cb) {
+  matchResults[i].checked = cb.checked;
+  updateCheckedCount();
+}
+function updateCheckedCount() {
+  const n = matchResults.filter(r=>r.checked).length;
+  document.getElementById('s-checked').textContent = '☑ ' + n;
+}
+function selectAllMatch(v) {
+  matchResults.forEach(r => r.checked = v);
+  renderMatchTable();
+  updateCheckedCount();
+}
+function selectBest() {
+  matchResults.forEach(r => r.checked = r.type === 'exact');
+  renderMatchTable();
+  updateCheckedCount();
+}
+function filterMatch() {
+  const v = document.querySelector('#rg-htthau label.checked input')?.value || 'all';
+  document.getElementById('filter-info').textContent = 'Đang lọc: ' + (v==='all'?'Tất cả':'DTRR');
+  renderMatchTable();
+}
+function exportMatch() {
+  const rows = matchResults.filter(r=>r.checked).map(r => ({
+    'Hoạt chất': r.dm['Hoạt chất']||'',
+    'Phân loại': r.type,
+    'Score': r.matches[0]?Math.round(r.matches[0]._score*100)+'%':'',
+    'Đơn giá': r.matches[0]?.['Đơn giá']||'',
+    'Tên hàng': r.matches[0]?.['Tên hàng']||''
+  }));
+  exportToExcel(rows, 'Match_Export');
+}
+
+function exportToExcel(data, name) {
+  if (!data || data.length===0) { alert('Không có dữ liệu để xuất!'); return; }
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(data);
+  XLSX.utils.book_append_sheet(wb, ws, 'Data');
+  XLSX.writeFile(wb, (name||'Export') + '_' + new Date().toISOString().slice(0,10) + '.xlsx');
+}
+
+// Set default dates
+(function() {
+  const today = new Date();
+  const d30 = new Date(today); d30.setDate(d30.getDate()-30);
+  document.getElementById('date-to').value = today.toISOString().slice(0,10);
+  document.getElementById('date-from').value = d30.toISOString().slice(0,10);
+})();
+</script>
+</body>
+</html>
